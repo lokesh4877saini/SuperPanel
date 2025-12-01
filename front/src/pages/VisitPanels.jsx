@@ -1,9 +1,10 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
-// Read panel URLs from environment variables
-const GOD_PANEL_URL = import.meta.env.VITE_GOD_PANEL_URL || "/god";
-const SUPER_ADMIN_URL = import.meta.env.VITE_SUPER_ADMIN_PANEL_URL || "/superadmin";
-const ADMIN_URL = import.meta.env.VITE_VISITOR_PANEL_URL || "/admin";
+// FRONTEND ROUTES ONLY — must be local paths
+const GOD_PANEL_URL = "/god";
+const SUPER_ADMIN_URL = "/superadmin";
+const ADMIN_URL = "/admin";
 
 export default function VisitorPage() {
   const panels = [
@@ -31,9 +32,9 @@ export default function VisitorPage() {
 
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         {panels.map((panel) => (
-          <a
+          <Link
             key={panel.name}
-            href={panel.url}
+            to={panel.url}
             style={{
               display: "block",
               padding: 20,
@@ -49,7 +50,7 @@ export default function VisitorPage() {
             <p style={{ margin: "8px 0 0", fontSize: 14, color: "#555" }}>
               {panel.description}
             </p>
-          </a>
+          </Link>
         ))}
       </div>
     </div>
