@@ -5,16 +5,11 @@ const connectDB = async () => {
     const mongoURI = process.env.MONGO_URI;
 
     if (!mongoURI) {
-      console.error(" Missing MONGO_URI in environment variables");
+      console.error("MONGO_URI is missing in environment variables!");
       process.exit(1);
     }
 
-    await mongoose.connect(mongoURI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 5000,
-    });
-
+    await mongoose.connect(mongoURI); // No options needed in Mongoose 7+
     console.log(" MongoDB Connected");
   } catch (err) {
     console.error(" MongoDB Connection Error:", err);
