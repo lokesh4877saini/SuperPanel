@@ -5,7 +5,7 @@ import {
   deleteFilter,
   getAllPossibleFields,
   getDistinctFieldValue
-} from "../api/godapi";
+} from "../api/godApi";
 import { fieldMap } from "../utils/fieldMap";
 
 export default function FilterCreator({ reloadFilters, setFilters }) {

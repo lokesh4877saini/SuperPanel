@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import UniversalPanelHeader from "../components/UniversalPanelHeader";
 import MetaInfo from "../components/MetaInfo";
-import { getAllowedFilters,getQueryBasedData } from "../api/panelapi";
+import { getAllowedFilters,getQueryBasedData } from "../api/panelApi";
 import useDebounce from '../hooks/useDebounce';
 
 export default function SuperAdmin() {

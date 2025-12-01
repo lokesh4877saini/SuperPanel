@@ -6,7 +6,12 @@ const panelPermissionRoutes = require("./routes/panelPermissionRoutes");
 
 const app = express();
 app.use(express.json());
-app.use(cors());
+
+app.use(
+    cors({
+      origin: "https://superbasepanel.netlify.app",
+    })
+);
 
 app.use('/api/god',godRoutes);
 app.use("/api/users", userRoutes);
