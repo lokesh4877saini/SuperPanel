@@ -1,84 +1,94 @@
 // src/api/godApi.js
-const BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/god` || "http://localhost:5000/api/god";
+
+// safe read of env var (Vite inlines these at build time)
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+
+// ensure no trailing slash on API_BASE
+const API_BASE_CLEAN = API_BASE.replace(/\/+$/, "");
+
+// god base
+export const BASE_URL = `${API_BASE_CLEAN}/god`;
+
+// helper to build panel routes (avoids using replace on unexpected strings)
+const panelBase = (panel) => `${API_BASE_CLEAN}/panel/${panel}`;
+
+async function safeFetch(url, options = {}) {
+  try {
+    const res = await fetch(url, options);
+    // optional: throw for non-2xx so caller can handle
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`HTTP ${res.status} ${res.statusText}: ${text}`);
+    }
+    return res.json();
+  } catch (err) {
+    // you can console.error or rethrow
+    console.error("Fetch error:", url, err);
+    throw err;
+  }
+}
 
 // -------------------- FILTERS --------------------
 export async function createFilter(filterData) {
-  const res = await fetch(`${BASE_URL}/addfilter`, {
+  return safeFetch(`${BASE_URL}/addfilter`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(filterData),
   });
-  return res.json();
 }
 
 export async function getAllFilters() {
-  const res = await fetch(`${BASE_URL}/allfilter`);
-  return res.json();
+  return safeFetch(`${BASE_URL}/allfilter`);
 }
 
 export async function deleteFilter(id) {
-  const res = await fetch(`${BASE_URL}/deletefilter/${id}`, {
-    method: "DELETE"
+  return safeFetch(`${BASE_URL}/deletefilter/${encodeURIComponent(id)}`, {
+    method: "DELETE",
   });
-  return res.json();
 }
 
 export async function updateFilter(id, updatedData) {
-  const res = await fetch(`${BASE_URL}/updatefilter/${id}`, {
+  return safeFetch(`${BASE_URL}/updatefilter/${encodeURIComponent(id)}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(updatedData),
   });
-  return res.json();
 }
 
 // -------------------- SEARCHABLE FIELDS --------------------
-// Get fields with panel-specific searchable status
 export async function getSeachableFields(panel) {
-  const res = await fetch(`${BASE_URL}/searchable-fields?panel=${panel}`);
-  return res.json();
+  return safeFetch(`${BASE_URL}/searchable-fields?panel=${encodeURIComponent(panel)}`);
 }
 
-// Update searchable field for a specific panel
 export async function updateSeachableFields(id, updated, panel) {
-  const res = await fetch(`${BASE_URL}/searchable-fields/${id}`, {
+  return safeFetch(`${BASE_URL}/searchable-fields/${encodeURIComponent(id)}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      isSearchable: updated,
-      panel: panel 
-    })
+    body: JSON.stringify({ isSearchable: updated, panel }),
   });
-  return res.json();
 }
 
-// Seed missing fields (no panel involved)
 export async function seedSearchableFields() {
-  const res = await fetch(`${BASE_URL}/searchable-fields/seed`);
-  return res.json();
+  return safeFetch(`${BASE_URL}/searchable-fields/seed`);
 }
 
 // -------------------- PANEL & FILTER UTILITIES --------------------
 export async function getAllPossibleFields() {
-  const res = await fetch(`${BASE_URL}/possible-fields`);
-  return res.json();
+  return safeFetch(`${BASE_URL}/possible-fields`);
 }
 
 export async function getDistinctFieldValue(fieldPath) {
-  const res = await fetch(`${BASE_URL}/distinct-values?fieldPath=${encodeURIComponent(fieldPath)}`);
-  return res.json();
+  return safeFetch(`${BASE_URL}/distinct-values?fieldPath=${encodeURIComponent(fieldPath)}`);
 }
 
 export async function getPanelFilters(panel) {
-  const res = await fetch(`${BASE_URL.replace("/god", "")}/panel/${panel}/filters`);
-  return res.json();
+  return safeFetch(`${panelBase(panel)}/filters`);
 }
 
 export async function updatePanelFilters(panel, allowedFilters) {
-  const res = await fetch(`${BASE_URL.replace("/god", "")}/panel/${panel}/filters`, {
+  return safeFetch(`${panelBase(panel)}/filters`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ allowedFilters })
+    body: JSON.stringify({ allowedFilters }),
   });
-  return res.json();
 }
