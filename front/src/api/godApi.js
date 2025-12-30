@@ -61,7 +61,7 @@ export async function getSeachableFields(panel) {
 }
 
 export async function updateSeachableFields(id, updated, panel) {
-  return safeFetch(`${BASE_URL}/searchable-fields/${encodeURIComponent(id)}`, {
+  return safeFetch(`${BASE_URL}/searchable-fields/global/${encodeURIComponent(id)}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ isSearchable: updated, panel }),
