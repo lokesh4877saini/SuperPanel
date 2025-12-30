@@ -1,10 +1,21 @@
 const mongoose = require("mongoose");
 
 const SearchableFieldSchema = new mongoose.Schema({
-    label: String,   // Example: "Phone"
-    path: String,    // Example: "basic_info.phone"
-    type: String,    // string, number, boolean
-    isSearchable: { type: Boolean, default: false }
+  label: { type: String, required: true },
+  path: { type: String, required: true },
+  
+  type: {
+    type: String,
+    enum: ["text", "enum", "number", "date", "phone", "boolean"],
+    default: "text"
+  },
+
+  // optional normalization
+  normalize: {
+    type: String,
+    enum: ["lowercase", "none"],
+    default: "none"
+  }
 });
 
 module.exports = mongoose.model("SearchableField", SearchableFieldSchema);

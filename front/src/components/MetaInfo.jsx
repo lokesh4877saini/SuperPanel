@@ -7,57 +7,84 @@ export default function MetaInfo({ meta }) {
   const parsedFilters = meta.parsed ?? {};
   const filterEntries = Object.entries(parsedFilters);
 
+  const isMore = filterEntries.length > 3;
+
+  const CARD_STYLE = {
+    margin: "0 auto",
+    padding: "0px 18px 0px 18px",
+    borderRadius: "10px",
+    background: "#fff",
+    border: "1px solid #dcdcdc",
+    boxShadow: "0 2px 4px rgba(0,0,0,0.06)",
+    display: "flex",
+    flexWrap: "wrap",
+    gap: isMore ? "8px" : "12px",
+    justifyContent: "center",
+    alignItems: "center",
+    width: "100%",
+    transition: "0.25s",
+  };
+
+  const CHIP_STYLE = {
+    padding: isMore ? "4px 10px" : "6px 14px",
+    borderRadius: "6px",
+    background: "#f5f8ff",
+    border: "1px solid #d6e4ff",
+    fontSize: isMore ? "12px" : "14px",
+    color: "#1c3d7a",
+    fontWeight: "600",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+    whiteSpace: "nowrap",
+    transition: "0.25s",
+    cursor: "default",
+  };
+
   return (
-    <div
-      style={{
-        margin: "20px auto",
-        padding: "15px 25px",
-        borderRadius: 14,
-        background: "linear-gradient(135deg, #fff7f0, #ffe7dc)",
-        border: "1px solid #ffc8a0",
-        boxShadow: "0 6px 12px rgba(255, 160, 120, 0.15)",
-        display: "flex",
-        flexWrap: "wrap",
-        gap: 12,
-        justifyContent: "center",
-        alignItems: "center",
-        maxWidth: "90%",
-      }}
-    >
+    <div style={CARD_STYLE}>
       {filterEntries.length > 0 ? (
         <>
           <span
             style={{
-              fontSize: 15,
-              fontWeight: 600,
-              color: "#5a4636",
-              marginRight: 8,
+              fontSize: isMore ? "14px" : "15px",
+              fontWeight: "700",
+              color: "#333",
+              paddingRight: "4px",
+              whiteSpace: "nowrap",
             }}
           >
             Filters Applied:
           </span>
+
           {filterEntries.map(([key, value]) => (
             <div
               key={key}
-              style={{
-                padding: "6px 14px",
-                borderRadius: 20,
-                background: "#fff1e6",
-                border: "1px solid #ffbc91",
-                fontSize: 13,
-                color: "#4a3621",
-                fontWeight: 500,
-                boxShadow: "0 2px 4px rgba(255, 150, 100, 0.2)",
-                whiteSpace: "nowrap",
-                transition: "0.2s",
+              style={CHIP_STYLE}
+              onMouseOver={(e) => {
+                e.currentTarget.style.background = "#e8f0ff";
+                e.currentTarget.style.borderColor = "#b4ceff";
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.background = "#f5f8ff";
+                e.currentTarget.style.borderColor = "#d6e4ff";
               }}
             >
-              {key}: <strong>{value.eq ?? JSON.stringify(value)}</strong>
+              {key}:{" "}
+              <strong style={{ fontWeight: 800 }}>
+                {value.eq ?? JSON.stringify(value)}
+              </strong>
             </div>
           ))}
         </>
       ) : (
-        <span style={{ fontSize: 14, color: "#7a5a4a" }}>
+        <span
+          style={{
+            fontSize: "14px",
+            padding: "5px 8px",
+            color: "#666",
+            fontWeight: "500",
+            opacity: 0.8,
+          }}
+        >
           No filters applied
         </span>
       )}

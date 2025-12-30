@@ -26,17 +26,21 @@ exports.syncSearchableFields = async (req, res) => {
 // Get all searchable fields (show table) with panel-specific enabled status
 exports.getAllSearchableFields = async (req, res) => {
   try {
-    const panel = req.query.panel || null;
-    const allFields = await SearchableField.find().sort({ path: 1 });
+    const panel = req.query.panel;
 
-    if (!panel) return res.json(allFields);
+    const fields = await SearchableField.find().sort({ path: 1 });
 
-    const panelFields = await PanelSearchableField.findOne({ panel });
-    const enabledIds = panelFields?.searchableFields.map(f => f.toString()) || [];
+    if (!panel) {
+      return res.json(fields); // no panel → return global list only
+    }
 
-    const result = allFields.map(f => ({
+    const panelConfig = await PanelSearchableField.findOne({ panel });
+
+    const enabled = panelConfig?.enabledFields.map(id => id.toString()) || [];
+
+    const result = fields.map(f => ({
       ...f.toObject(),
-      isSearchable: enabledIds.includes(f._id.toString())
+      isSearchable: enabled.includes(f._id.toString()) // computed per panel
     }));
 
     res.json(result);
@@ -45,35 +49,56 @@ exports.getAllSearchableFields = async (req, res) => {
   }
 };
 
+
 // Toggle searchable field for a specific panel
-exports.toggleSearchable = async (req, res) => {
+const mongoose = require("mongoose");
+
+exports.updateGlobalSearchable = async (req, res) => {
   try {
-    const { panel } = req.body; // pass panel in request body
+    const { panel } = req.body;
     const fieldId = req.params.id;
 
-    if (!panel) return res.status(400).json({ message: "Panel is required" });
-
-    let panelFields = await PanelSearchableField.findOne({ panel });
-    if (!panelFields) {
-      panelFields = await PanelSearchableField.create({ panel, searchableFields: [] });
+    if (!panel) {
+      return res.status(400).json({ message: "Panel is required" });
     }
 
-    const index = panelFields.searchableFields.findIndex(f => f.equals(fieldId));
-    if (index > -1) {
-      panelFields.searchableFields.splice(index, 1); // disable
+    const fieldObjectId = new mongoose.Types.ObjectId(fieldId);
+
+    let panelConfig = await PanelSearchableField.findOne({ panel });
+
+    if (!panelConfig) {
+      panelConfig = await PanelSearchableField.create({
+        panel,
+        enabledFields: []
+      });
+    }
+
+    const idx = panelConfig.enabledFields.findIndex(
+      id => id.toString() === fieldObjectId.toString()
+    );
+      // console.log("idx"+idx+"toggle")
+    if (idx >= 0) {
+      // DISABLE
+      panelConfig.enabledFields.splice(idx, 1);
     } else {
-      panelFields.searchableFields.push(fieldId); // enable
+      // ENABLE (prevent duplicates)
+      panelConfig.enabledFields.push(fieldObjectId);
     }
 
-    await panelFields.save();
+    await panelConfig.save();
 
-    // Return updated field for frontend
-    const updatedField = await SearchableField.findById(fieldId);
-    res.json({ ...updatedField.toObject(), isSearchable: index === -1 });
+    res.json({
+      fieldId,
+      isSearchable: idx === -1,
+      panel
+    });
+
   } catch (err) {
+    console.error("updateGlobalSearchable error:", err);
     res.status(500).json({ error: err.message });
   }
 };
+
 
 // Auto insert missing fields into SearchableField collection
 exports.seedSearchableFields = async (req, res) => {
@@ -88,7 +113,6 @@ exports.seedSearchableFields = async (req, res) => {
             label: p.path.split(".").slice(-1)[0],
             path: p.path,
             type: p.type,
-            isSearchable: false
           });
         }
       } catch (innerErr) {

@@ -1,64 +1,74 @@
 // controllers/userController.js
 const User = require("../models/User");
 const PanelPermission = require("../models/PanelPermission");
-const SearchableField = require("../models/SearchableField");
+const PanelSearchableField = require("../models/PanelSearchableField");
 const queryBuilder = require("../utils/queryBuilder");
-
+const buildSearchOrConditions = require('../utils/buildSearchQuery');
 exports.getUsers = async (req, res) => {
   try {
     const panel = req.query.panel || "admin";
 
-    // 1) Load PanelPermission and allowed filters
+    // 1) Load allowed filters for this panel
     const permission = await PanelPermission.findOne({ panel }).populate("allowedFilters");
     const allowedFilters = permission ? permission.allowedFilters : [];
 
-    // 2) Build mongo query from request filters
+    // 2) Load panel-level searchable fields
+    const panelFieldDoc = await PanelSearchableField
+      .findOne({ panel })
+      .populate("enabledFields"); // <-- populate field name
+    const panelSearchableFields = panelFieldDoc ? panelFieldDoc.enabledFields : [];
+
+    // Convert fields to actual paths
+    const finalSearchableFields = panelSearchableFields.map(f => f.path);
+    // console.log(finalSearchableFields, "Fields that need to search");
+    // console.log(allowedFilters, "God Panel Allowed things")
+    // 3) Build base query from allowed filters
     const { mongoQuery, parsed } = queryBuilder.buildFromRequest(req.query, allowedFilters);
 
-    // 3) Get all fields that are globally searchable
-    const searchableFieldsDocs = await SearchableField.find({ isSearchable: true });
-    const searchableFields = searchableFieldsDocs.map(f => f.path);
-
-    // 4) Global search
+    // 4) Handle search logic
     const searchValue = req.query.search?.trim();
-    if (searchValue && searchableFields.length > 0) {
-      const orQueries = [];
 
-      searchableFields.forEach(fieldPath => {
-        if (fieldPath.includes("phone") && /^\d+$/.test(searchValue)) {
-          // Numeric fields like phone → exact match
-          orQueries.push({ [fieldPath]: searchValue });
-        } else {
-          // String fields → case-insensitive partial match
-          orQueries.push({ [fieldPath]: { $regex: searchValue, $options: "i" } });
-        }
-      });
+    if (searchValue) {
+      const orConditions = buildSearchOrConditions(
+        searchValue,
+        panelSearchableFields
+      );
 
-      if (orQueries.length > 0) {
-        mongoQuery.$or = orQueries;
+      // console.log(orConditions, "orConditions");
+
+      if (orConditions.length) {
+        mongoQuery.$or = orConditions;
       }
     }
-
-    // 5) Pagination & sorting
+    // 5) Pagination
     const page = Math.max(1, parseInt(req.query.page || "1", 10));
     const limit = Math.max(1, parseInt(req.query.limit || "50", 10));
     const skip = (page - 1) * limit;
+    // console.log("FINAL MONGO QUERY:", JSON.stringify(mongoQuery, null, 2));
 
     let cursor = User.find(mongoQuery).skip(skip).limit(limit);
 
-    // 6) query what applied sorting
+    // 6) Sorting
     if (req.query.sort) {
       const order = req.query.order === "desc" ? -1 : 1;
-      const sortObj = { [req.query.sort]: order };
-      cursor = cursor.sort(sortObj);
+      cursor = cursor.sort({ [req.query.sort]: order });
     }
 
     const totalCount = await User.countDocuments({});
     const count = await User.countDocuments(mongoQuery);
     const results = await cursor.exec();
 
+    // 7) Response
     res.json({
-      meta: { count, page, totalCount, limit, parsed },
+      meta: {
+        count,
+        page,
+        totalCount,
+        limit,
+        parsed,
+        searchablePaths: finalSearchableFields,
+        panelSearchableFields
+      },
       data: results
     });
 
